@@ -1,5 +1,35 @@
 "*":
   core:
+    ignoredNames: [
+      ".git"
+      ".hg"
+      ".svn"
+      ".DS_Store"
+      "._*"
+      "Thumbs.db"
+      "*.meta"
+      "*.png"
+      "*.csproj"
+      "*.pidb"
+      "*.unityproj"
+      "*.sln"
+      "*.userprefs"
+      "*.swp"
+      "*.meta"
+      "*.unity"
+      "*.tpsheet"
+      "*.anim"
+      "*.png"
+      "*.jpg"
+      "*.mat"
+      "*.prefab"
+      "*.controller"
+      "*.asset"
+      "*.shader"
+      "*.wav"
+      "*.dll"
+      "*.sbx"
+    ]
     themes: [
       "one-dark-ui"
       "monokai-plus"
@@ -11,6 +41,7 @@
   "keyboard-localization":
     useKeyboardLayout: "ja_JP"
     useKeyboardLayoutFromPath: "/home/sargon/UserJPMacbookAtomKey.json"
+  "tree-ignore": {}
   "tree-view": {}
   welcome:
     showOnStartup: false
