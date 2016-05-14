@@ -1,0 +1,269 @@
+#define PROCESS_MASK
+
+#include<iostream>
+#include<algorithm>
+#include<fstream>
+#include<chrono>
+#include<string>
+#include<math.h>
+
+#include<opencv2/core/core.hpp>
+
+#include <System.h>
+
+#include <stdio.h>
+#ifdef _WIN32
+#  define snprintf _snprintf
+#endif
+#include <stdlib.h>					// malloc(), free()
+#ifdef __APPLE__
+#  include <GLUT/glut.h>
+#else
+#  include <GL/glut.h>
+#endif
+#include <AR/config.h>
+#include <AR/video.h>
+#include <AR/param.h>			// arParamDisp()
+#include <AR/ar.h>
+#include <AR/gsub_lite.h>
+
+
+using namespace std;
+
+int main(int argc, char **argv)
+{
+    bool fileMode = false;
+    if(std::string(argv[3]) == "FILE")
+    {
+        if(argc != 6)
+        {
+            std::cerr << "Format : vocab calibration FILE file maskfile\n";
+            return 0;
+        }
+        fileMode = true;
+    }
+    else if (std::string(argv[3]) == "CAMERA")
+    {
+        fileMode = false;
+    }
+    else
+    {
+        std::cerr << "Format : vocab calibration FILE/CAMERA [file] [maskfile]\n";
+        return 0;
+    }
+
+    cv::VideoCapture webcam;
+    cv::VideoCapture videoFile;
+    cv::VideoCapture maskFile;
+    if(fileMode == false)
+    {
+        webcam.open(0);
+
+        if( !webcam.isOpened() )
+        {
+            std::cerr << "***Could not initialize capturing...***\n";
+            std::cerr << "Current parameter's value: \n";
+            return -1;
+        }
+    }
+    else
+    {
+        videoFile.open(argv[4]);
+        //cv::cvSetCaptureProperty(videoFile,cv::CV_CAP_PROP_POS_FRAMES, 2000);
+        videoFile.set(cv::CV_CAP_PROP_POS_MSEC,2000);
+        maskFile.open(argv[5]);
+    }
+
+    // Create SLAM system. It initializes all system threads and gets ready to process frames.
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true); //vocab yaml mono true
+
+    // Main loop -----------------------------------------------------------
+    cv::Mat im;
+    cv::Mat cameraPose;
+    cv::Mat mask;
+    cv::Mat output;
+    cv::Mat plane = cv::Mat::zeros(4000,4000, CV_8UC3);
+    int temp = 0;
+    float planePos[4][4] = { {1 , 0 , 0 , 0 },
+    {0 , 1 , 0 , 0 },
+    {0 , 0 ,1 , -1},
+    {0 , 0 , 0 , 1 } };
+
+    cv::Mat planePosition = cv::Mat(4,4,CV_32FC1, planePos);
+    cout << "PLANEPOS = "<< endl << " "  << planePosition << endl << endl;
+
+    while(1)
+    {
+        if(fileMode)
+        {
+            //argv[4] should be real video, and argv[5] should be the human mask video
+            videoFile>>im;
+
+            #ifdef PROCESS_MASK
+            maskFile>>mask;
+
+            if(!im.data || !mask.data)
+            {
+                break;
+            }
+            #endif
+        }
+        else
+        {
+            // im is from live camera
+            webcam >> im;
+            //TODO: get the mask out of im
+            //TODO: how to run python from here?
+        }
+
+        /*
+        #ifdef COMPILEDWITHC11
+        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+        #else
+        std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
+        #endif
+        */
+
+        // Pass the image to the SLAM system
+        SLAM.TrackMonocular(im,0); //lets look later how the system uses that "timestamp"
+        // this function create new Mat which I did not freed.
+        // in the long run this might cause big memory leaks?
+        cameraPose = SLAM.GetCurrentCameraMatrix();
+
+        //string ty =  type2str( cameraPose.type() );
+        //printf("Matrix: %s %dx%d \n", ty.c_str(), cameraPose.cols, cameraPose.rows );
+
+        #ifdef PROCESS_MASK
+        // This is a log to view camera pose. Used with watch command on the file.
+        std::filebuf logbuf ;
+        logbuf.open( "cameraPose.txt", std::ios::out|std::ios::trunc) ;
+        std::streambuf* old_clog_buf = std::clog.rdbuf( &logbuf ) ;
+
+        clog << "CameraPose = "<< endl << " "  << cameraPose << endl << endl;
+
+        //double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+
+        // Temp info I will hardcode : bg is a plane, and human is fixed in place. Distace to a plane is known. Camera only move sideways.
+        // Question : What is the unit of stored camera position data?
+
+        output = im.clone();
+
+        // Iterate through the mask of this frame and find alternative color
+        if(!cameraPose.empty())
+        {
+            for(int i=0; i < mask.rows; i++) //y
+            {
+                for(int j=0; j < mask.cols; j++) //x
+                {
+                    //store data in imaginary plane
+                    //do ortho projection for every point
+                    float pointPos[4][4] = {   {1 , 0 , 0 , (j-320)/2000.0},
+                    {0 , 1 , 0 , (i-240)/2000.0},
+                    {0 , 0 , 1 , 0 },
+                    {0 , 0 , 0 , 1 } };
+
+                    cv::Mat pointPosition = cv::Mat(4,4,CV_32FC1, pointPos);
+                    cv::Mat pointInWorld = pointPosition * cameraPose;
+                    cv::Mat pointFromPlane = planePosition * pointInWorld;
+
+                    //cout << "1";
+
+                    float rotationA = pointFromPlane.at<float>(0,2);
+                    float rotationB = pointFromPlane.at<float>(1,2);
+                    float rotationC = pointFromPlane.at<float>(2,2);
+
+                    //find value that makes z 0 on the line
+                    // zPoint + tC = 0 -> what is t?
+                    // t = -zPoint/C
+                    float tValue = -pointFromPlane.at<float>(2,3) / rotationC;
+
+                    // Use t value to get x and y
+                    int xPoint = ( (pointFromPlane.at<float>(0,3)+(tValue*rotationA))*2000 ) + 2000;
+                    int yPoint = ( (pointFromPlane.at<float>(1,3)+(tValue*rotationB))*2000 ) + 2000;
+
+
+                    //clog << "PointPosition = "<< endl << " "  << pointPosition << endl << endl;
+                    //clog << "PointFromPlane = "<< endl << " "  << pointFromPlane << endl << endl;
+
+                    //int xPoint = round(pointFromPlane.at<float>(0,3)*5000) + 1000;
+                    //int yPoint = round(pointFromPlane.at<float>(1,3)*5000) + 1000;
+
+
+                    /*
+
+                    cout << "Point = "<< " "  << xPoint << " " << yPoint << "i j = " << i << " " << j << endl;
+                    if( i > temp)
+                    {
+                    temp = i;
+                }
+                cout << "MAX " << temp << endl;
+                */
+
+                if(mask.at<cv::Vec3b>(i,j)[0] < 128)
+                {
+                    plane.at<cv::Vec3b>(xPoint,yPoint)[0] = (im.at<cv::Vec3b>(i,j)[0] + plane.at<cv::Vec3b>(xPoint,yPoint)[0])/2.0;
+                    plane.at<cv::Vec3b>(xPoint,yPoint)[1] = (im.at<cv::Vec3b>(i,j)[1] + plane.at<cv::Vec3b>(xPoint,yPoint)[1])/2.0;
+                    plane.at<cv::Vec3b>(xPoint,yPoint)[2] = (im.at<cv::Vec3b>(i,j)[2] + plane.at<cv::Vec3b>(xPoint,yPoint)[2])/2.0;
+
+                    output.at<cv::Vec3b>(i,j)[0] = im.at<cv::Vec3b>(i,j)[0];
+                    output.at<cv::Vec3b>(i,j)[1] = im.at<cv::Vec3b>(i,j)[1];
+                    output.at<cv::Vec3b>(i,j)[2] = im.at<cv::Vec3b>(i,j)[2];
+                }
+                else
+                {
+                    //find replacement from plane
+                    output.at<cv::Vec3b>(i,j)[0] = plane.at<cv::Vec3b>(xPoint,yPoint)[0];
+                    output.at<cv::Vec3b>(i,j)[1] = plane.at<cv::Vec3b>(xPoint,yPoint)[1];
+                    output.at<cv::Vec3b>(i,j)[2] = plane.at<cv::Vec3b>(xPoint,yPoint)[2];
+                }
+                //cout << "2";
+            }
+        }
+    }
+
+    //TODO : Store camera pose and position. Store all the colors of that pose into plane. Masked pixels does not count.
+
+    //TODO : For current image, attempt to replace masked pixels with something else. Try to interpolate colors from the plane if found color data.
+    //cout << "3333";
+
+    cv::Mat resized;
+    cv::resize(plane,resized,cv::Size(500,500));
+
+    //displaying result
+    SLAM.FeedAuxDisplay(resized);
+    SLAM.FeedOutputDisplay(output);
+    #endif //end of PROCESS_MASK
+
+    usleep((1/(float)90)*1e6); //the wait
+
+    #ifdef PROCESS_MASK
+    std::clog << std::flush ;
+    std::clog.rdbuf( old_clog_buf ) ;
+    #endif
+}
+
+// Stop all threads
+SLAM.Shutdown();
+
+/*
+// Tracking time statistics
+sort(vTimesTrack.begin(),vTimesTrack.end());
+float totaltime = 0;
+for(int ni=0; ni<nImages; ni++)
+{
+totaltime+=vTimesTrack[ni];
+}
+cout << "-------" << endl << endl;
+cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
+cout << "mean tracking time: " << totaltime/nImages << endl;
+
+// Save camera trajectory
+SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+*/
+
+cout << "End of program!" << endl << endl;
+while(1)
+{
+}
+return 0;
+}

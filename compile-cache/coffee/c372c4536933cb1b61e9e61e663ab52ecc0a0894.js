@@ -1,0 +1,173 @@
+(function() {
+  var getVimState, requireFrom;
+
+  requireFrom = function(pack, path) {
+    var packPath;
+    packPath = atom.packages.resolvePackagePath(pack);
+    return require("" + packPath + "/" + path);
+  };
+
+  getVimState = requireFrom('vim-mode-plus', 'spec/spec-helper').getVimState;
+
+  describe("vim-mode-plus-move-to-symbols", function() {
+    var editor, editorElement, ensure, ensureMoveToSymbols, keystroke, set, vimState, _ref;
+    _ref = [], set = _ref[0], ensure = _ref[1], keystroke = _ref[2], editor = _ref[3], editorElement = _ref[4], vimState = _ref[5];
+    ensureMoveToSymbols = function(_keystroke, options) {
+      return runs(function() {
+        keystroke(_keystroke, {
+          waitsForFinish: true
+        });
+        return runs(function() {
+          return ensure(options);
+        });
+      });
+    };
+    beforeEach(function() {
+      atom.keymaps.add("test", {
+        'atom-text-editor.vim-mode-plus:not(.insert-mode)': {
+          '(': 'vim-mode-plus-user:move-to-previous-symbol',
+          ')': 'vim-mode-plus-user:move-to-next-symbol'
+        }
+      });
+      return waitsForPromise(function() {
+        return atom.packages.activatePackage('vim-mode-plus-move-to-symbols');
+      });
+    });
+    describe("coffee editor", function() {
+      var pack;
+      pack = 'language-coffee-script';
+      beforeEach(function() {
+        waitsForPromise(function() {
+          return atom.packages.activatePackage(pack);
+        });
+        getVimState('sample.coffee', function(state, vim) {
+          vimState = state;
+          editor = state.editor, editorElement = state.editorElement;
+          return set = vim.set, ensure = vim.ensure, keystroke = vim.keystroke, vim;
+        });
+        waitsForPromise(function() {
+          return atom.packages.activatePackage('vim-mode-plus-move-to-symbols');
+        });
+        return runs(function() {
+          return set({
+            cursor: [0, 0]
+          });
+        });
+      });
+      afterEach(function() {
+        return atom.packages.deactivatePackage(pack);
+      });
+      it("move next and previous symbols", function() {
+        ensureMoveToSymbols(')', {
+          cursor: [1, 2]
+        });
+        ensureMoveToSymbols(')', {
+          cursor: [3, 2]
+        });
+        ensureMoveToSymbols(')', {
+          cursor: [5, 2]
+        });
+        ensureMoveToSymbols(')', {
+          cursor: [7, 0]
+        });
+        ensureMoveToSymbols(')', {
+          cursor: [8, 2]
+        });
+        ensureMoveToSymbols('(', {
+          cursor: [7, 0]
+        });
+        ensureMoveToSymbols('(', {
+          cursor: [5, 2]
+        });
+        ensureMoveToSymbols('(', {
+          cursor: [3, 2]
+        });
+        ensureMoveToSymbols('(', {
+          cursor: [1, 2]
+        });
+        return ensureMoveToSymbols('(', {
+          cursor: [0, 0]
+        });
+      });
+      return it("support count", function() {
+        ensureMoveToSymbols('3)', {
+          cursor: [5, 2]
+        });
+        ensureMoveToSymbols('2)', {
+          cursor: [8, 2]
+        });
+        ensureMoveToSymbols('3(', {
+          cursor: [3, 2]
+        });
+        return ensureMoveToSymbols('2(', {
+          cursor: [0, 0]
+        });
+      });
+    });
+    return describe("github markdown editor", function() {
+      var pack;
+      pack = 'language-gfm';
+      beforeEach(function() {
+        waitsForPromise(function() {
+          return atom.packages.activatePackage(pack);
+        });
+        getVimState('sample.md', function(state, vim) {
+          vimState = state;
+          editor = state.editor, editorElement = state.editorElement;
+          return set = vim.set, ensure = vim.ensure, keystroke = vim.keystroke, vim;
+        });
+        return runs(function() {
+          return set({
+            cursor: [0, 0]
+          });
+        });
+      });
+      afterEach(function() {
+        return atom.packages.deactivatePackage(pack);
+      });
+      return it("move next and previous symbols", function() {
+        ensureMoveToSymbols(')', {
+          cursor: [2, 0]
+        });
+        ensureMoveToSymbols(')', {
+          cursor: [4, 0]
+        });
+        ensureMoveToSymbols(')', {
+          cursor: [5, 0]
+        });
+        ensureMoveToSymbols(')', {
+          cursor: [7, 0]
+        });
+        ensureMoveToSymbols(')', {
+          cursor: [9, 0]
+        });
+        ensureMoveToSymbols(')', {
+          cursor: [10, 0]
+        });
+        ensureMoveToSymbols('(', {
+          cursor: [9, 0]
+        });
+        ensureMoveToSymbols('(', {
+          cursor: [7, 0]
+        });
+        ensureMoveToSymbols('(', {
+          cursor: [5, 0]
+        });
+        ensureMoveToSymbols('(', {
+          cursor: [4, 0]
+        });
+        ensureMoveToSymbols('(', {
+          cursor: [2, 0]
+        });
+        return ensureMoveToSymbols('(', {
+          cursor: [0, 0]
+        });
+      });
+    });
+  });
+
+}).call(this);
+
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAiZmlsZSI6ICIiLAogICJzb3VyY2VSb290IjogIiIsCiAgInNvdXJjZXMiOiBbCiAgICAiL2hvbWUvc2FyZ29uLy5hdG9tL3BhY2thZ2VzL3ZpbS1tb2RlLXBsdXMtbW92ZS10by1zeW1ib2xzL3NwZWMvbWFpbi1zcGVjLmNvZmZlZSIKICBdLAogICJuYW1lcyI6IFtdLAogICJtYXBwaW5ncyI6ICJBQUFBO0FBQUEsTUFBQSx3QkFBQTs7QUFBQSxFQUFBLFdBQUEsR0FBYyxTQUFDLElBQUQsRUFBTyxJQUFQLEdBQUE7QUFDWixRQUFBLFFBQUE7QUFBQSxJQUFBLFFBQUEsR0FBVyxJQUFJLENBQUMsUUFBUSxDQUFDLGtCQUFkLENBQWlDLElBQWpDLENBQVgsQ0FBQTtXQUNBLE9BQUEsQ0FBUSxFQUFBLEdBQUcsUUFBSCxHQUFZLEdBQVosR0FBZSxJQUF2QixFQUZZO0VBQUEsQ0FBZCxDQUFBOztBQUFBLEVBSUMsY0FBZSxXQUFBLENBQVksZUFBWixFQUE2QixrQkFBN0IsRUFBZixXQUpELENBQUE7O0FBQUEsRUFNQSxRQUFBLENBQVMsK0JBQVQsRUFBMEMsU0FBQSxHQUFBO0FBQ3hDLFFBQUEsa0ZBQUE7QUFBQSxJQUFBLE9BQTRELEVBQTVELEVBQUMsYUFBRCxFQUFNLGdCQUFOLEVBQWMsbUJBQWQsRUFBeUIsZ0JBQXpCLEVBQWlDLHVCQUFqQyxFQUFnRCxrQkFBaEQsQ0FBQTtBQUFBLElBRUEsbUJBQUEsR0FBc0IsU0FBQyxVQUFELEVBQWEsT0FBYixHQUFBO2FBQ3BCLElBQUEsQ0FBSyxTQUFBLEdBQUE7QUFDSCxRQUFBLFNBQUEsQ0FBVSxVQUFWLEVBQXNCO0FBQUEsVUFBQSxjQUFBLEVBQWdCLElBQWhCO1NBQXRCLENBQUEsQ0FBQTtlQUNBLElBQUEsQ0FBSyxTQUFBLEdBQUE7aUJBQ0gsTUFBQSxDQUFPLE9BQVAsRUFERztRQUFBLENBQUwsRUFGRztNQUFBLENBQUwsRUFEb0I7SUFBQSxDQUZ0QixDQUFBO0FBQUEsSUFRQSxVQUFBLENBQVcsU0FBQSxHQUFBO0FBQ1QsTUFBQSxJQUFJLENBQUMsT0FBTyxDQUFDLEdBQWIsQ0FBaUIsTUFBakIsRUFDRTtBQUFBLFFBQUEsa0RBQUEsRUFDRTtBQUFBLFVBQUEsR0FBQSxFQUFLLDRDQUFMO0FBQUEsVUFDQSxHQUFBLEVBQUssd0NBREw7U0FERjtPQURGLENBQUEsQ0FBQTthQUtBLGVBQUEsQ0FBZ0IsU0FBQSxHQUFBO2VBQ2QsSUFBSSxDQUFDLFFBQVEsQ0FBQyxlQUFkLENBQThCLCtCQUE5QixFQURjO01BQUEsQ0FBaEIsRUFOUztJQUFBLENBQVgsQ0FSQSxDQUFBO0FBQUEsSUFpQkEsUUFBQSxDQUFTLGVBQVQsRUFBMEIsU0FBQSxHQUFBO0FBQ3hCLFVBQUEsSUFBQTtBQUFBLE1BQUEsSUFBQSxHQUFPLHdCQUFQLENBQUE7QUFBQSxNQUNBLFVBQUEsQ0FBVyxTQUFBLEdBQUE7QUFDVCxRQUFBLGVBQUEsQ0FBZ0IsU0FBQSxHQUFBO2lCQUNkLElBQUksQ0FBQyxRQUFRLENBQUMsZUFBZCxDQUE4QixJQUE5QixFQURjO1FBQUEsQ0FBaEIsQ0FBQSxDQUFBO0FBQUEsUUFHQSxXQUFBLENBQVksZUFBWixFQUE2QixTQUFDLEtBQUQsRUFBUSxHQUFSLEdBQUE7QUFDM0IsVUFBQSxRQUFBLEdBQVcsS0FBWCxDQUFBO0FBQUEsVUFDQyxlQUFBLE1BQUQsRUFBUyxzQkFBQSxhQURULENBQUE7aUJBRUMsVUFBQSxHQUFELEVBQU0sYUFBQSxNQUFOLEVBQWMsZ0JBQUEsU0FBZCxFQUEyQixJQUhBO1FBQUEsQ0FBN0IsQ0FIQSxDQUFBO0FBQUEsUUFRQSxlQUFBLENBQWdCLFNBQUEsR0FBQTtpQkFDZCxJQUFJLENBQUMsUUFBUSxDQUFDLGVBQWQsQ0FBOEIsK0JBQTlCLEVBRGM7UUFBQSxDQUFoQixDQVJBLENBQUE7ZUFXQSxJQUFBLENBQUssU0FBQSxHQUFBO2lCQUNILEdBQUEsQ0FBSTtBQUFBLFlBQUEsTUFBQSxFQUFRLENBQUMsQ0FBRCxFQUFJLENBQUosQ0FBUjtXQUFKLEVBREc7UUFBQSxDQUFMLEVBWlM7TUFBQSxDQUFYLENBREEsQ0FBQTtBQUFBLE1BZ0JBLFNBQUEsQ0FBVSxTQUFBLEdBQUE7ZUFDUixJQUFJLENBQUMsUUFBUSxDQUFDLGlCQUFkLENBQWdDLElBQWhDLEVBRFE7TUFBQSxDQUFWLENBaEJBLENBQUE7QUFBQSxNQW1CQSxFQUFBLENBQUcsZ0NBQUgsRUFBcUMsU0FBQSxHQUFBO0FBQ25DLFFBQUEsbUJBQUEsQ0FBb0IsR0FBcEIsRUFBeUI7QUFBQSxVQUFBLE1BQUEsRUFBUSxDQUFDLENBQUQsRUFBSSxDQUFKLENBQVI7U0FBekIsQ0FBQSxDQUFBO0FBQUEsUUFDQSxtQkFBQSxDQUFvQixHQUFwQixFQUF5QjtBQUFBLFVBQUEsTUFBQSxFQUFRLENBQUMsQ0FBRCxFQUFJLENBQUosQ0FBUjtTQUF6QixDQURBLENBQUE7QUFBQSxRQUVBLG1CQUFBLENBQW9CLEdBQXBCLEVBQXlCO0FBQUEsVUFBQSxNQUFBLEVBQVEsQ0FBQyxDQUFELEVBQUksQ0FBSixDQUFSO1NBQXpCLENBRkEsQ0FBQTtBQUFBLFFBR0EsbUJBQUEsQ0FBb0IsR0FBcEIsRUFBeUI7QUFBQSxVQUFBLE1BQUEsRUFBUSxDQUFDLENBQUQsRUFBSSxDQUFKLENBQVI7U0FBekIsQ0FIQSxDQUFBO0FBQUEsUUFJQSxtQkFBQSxDQUFvQixHQUFwQixFQUF5QjtBQUFBLFVBQUEsTUFBQSxFQUFRLENBQUMsQ0FBRCxFQUFJLENBQUosQ0FBUjtTQUF6QixDQUpBLENBQUE7QUFBQSxRQU1BLG1CQUFBLENBQW9CLEdBQXBCLEVBQXlCO0FBQUEsVUFBQSxNQUFBLEVBQVEsQ0FBQyxDQUFELEVBQUksQ0FBSixDQUFSO1NBQXpCLENBTkEsQ0FBQTtBQUFBLFFBT0EsbUJBQUEsQ0FBb0IsR0FBcEIsRUFBeUI7QUFBQSxVQUFBLE1BQUEsRUFBUSxDQUFDLENBQUQsRUFBSSxDQUFKLENBQVI7U0FBekIsQ0FQQSxDQUFBO0FBQUEsUUFRQSxtQkFBQSxDQUFvQixHQUFwQixFQUF5QjtBQUFBLFVBQUEsTUFBQSxFQUFRLENBQUMsQ0FBRCxFQUFJLENBQUosQ0FBUjtTQUF6QixDQVJBLENBQUE7QUFBQSxRQVNBLG1CQUFBLENBQW9CLEdBQXBCLEVBQXlCO0FBQUEsVUFBQSxNQUFBLEVBQVEsQ0FBQyxDQUFELEVBQUksQ0FBSixDQUFSO1NBQXpCLENBVEEsQ0FBQTtlQVVBLG1CQUFBLENBQW9CLEdBQXBCLEVBQXlCO0FBQUEsVUFBQSxNQUFBLEVBQVEsQ0FBQyxDQUFELEVBQUksQ0FBSixDQUFSO1NBQXpCLEVBWG1DO01BQUEsQ0FBckMsQ0FuQkEsQ0FBQTthQWdDQSxFQUFBLENBQUcsZUFBSCxFQUFvQixTQUFBLEdBQUE7QUFDbEIsUUFBQSxtQkFBQSxDQUFvQixJQUFwQixFQUEwQjtBQUFBLFVBQUEsTUFBQSxFQUFRLENBQUMsQ0FBRCxFQUFJLENBQUosQ0FBUjtTQUExQixDQUFBLENBQUE7QUFBQSxRQUNBLG1CQUFBLENBQW9CLElBQXBCLEVBQTBCO0FBQUEsVUFBQSxNQUFBLEVBQVEsQ0FBQyxDQUFELEVBQUksQ0FBSixDQUFSO1NBQTFCLENBREEsQ0FBQTtBQUFBLFFBR0EsbUJBQUEsQ0FBb0IsSUFBcEIsRUFBMEI7QUFBQSxVQUFBLE1BQUEsRUFBUSxDQUFDLENBQUQsRUFBSSxDQUFKLENBQVI7U0FBMUIsQ0FIQSxDQUFBO2VBSUEsbUJBQUEsQ0FBb0IsSUFBcEIsRUFBMEI7QUFBQSxVQUFBLE1BQUEsRUFBUSxDQUFDLENBQUQsRUFBSSxDQUFKLENBQVI7U0FBMUIsRUFMa0I7TUFBQSxDQUFwQixFQWpDd0I7SUFBQSxDQUExQixDQWpCQSxDQUFBO1dBeURBLFFBQUEsQ0FBUyx3QkFBVCxFQUFtQyxTQUFBLEdBQUE7QUFDakMsVUFBQSxJQUFBO0FBQUEsTUFBQSxJQUFBLEdBQU8sY0FBUCxDQUFBO0FBQUEsTUFDQSxVQUFBLENBQVcsU0FBQSxHQUFBO0FBQ1QsUUFBQSxlQUFBLENBQWdCLFNBQUEsR0FBQTtpQkFDZCxJQUFJLENBQUMsUUFBUSxDQUFDLGVBQWQsQ0FBOEIsSUFBOUIsRUFEYztRQUFBLENBQWhCLENBQUEsQ0FBQTtBQUFBLFFBR0EsV0FBQSxDQUFZLFdBQVosRUFBeUIsU0FBQyxLQUFELEVBQVEsR0FBUixHQUFBO0FBQ3ZCLFVBQUEsUUFBQSxHQUFXLEtBQVgsQ0FBQTtBQUFBLFVBQ0MsZUFBQSxNQUFELEVBQVMsc0JBQUEsYUFEVCxDQUFBO2lCQUVDLFVBQUEsR0FBRCxFQUFNLGFBQUEsTUFBTixFQUFjLGdCQUFBLFNBQWQsRUFBMkIsSUFISjtRQUFBLENBQXpCLENBSEEsQ0FBQTtlQVFBLElBQUEsQ0FBSyxTQUFBLEdBQUE7aUJBQ0gsR0FBQSxDQUFJO0FBQUEsWUFBQSxNQUFBLEVBQVEsQ0FBQyxDQUFELEVBQUksQ0FBSixDQUFSO1dBQUosRUFERztRQUFBLENBQUwsRUFUUztNQUFBLENBQVgsQ0FEQSxDQUFBO0FBQUEsTUFhQSxTQUFBLENBQVUsU0FBQSxHQUFBO2VBQ1IsSUFBSSxDQUFDLFFBQVEsQ0FBQyxpQkFBZCxDQUFnQyxJQUFoQyxFQURRO01BQUEsQ0FBVixDQWJBLENBQUE7YUFnQkEsRUFBQSxDQUFHLGdDQUFILEVBQXFDLFNBQUEsR0FBQTtBQUNuQyxRQUFBLG1CQUFBLENBQW9CLEdBQXBCLEVBQXlCO0FBQUEsVUFBQSxNQUFBLEVBQVEsQ0FBQyxDQUFELEVBQUksQ0FBSixDQUFSO1NBQXpCLENBQUEsQ0FBQTtBQUFBLFFBQ0EsbUJBQUEsQ0FBb0IsR0FBcEIsRUFBeUI7QUFBQSxVQUFBLE1BQUEsRUFBUSxDQUFDLENBQUQsRUFBSSxDQUFKLENBQVI7U0FBekIsQ0FEQSxDQUFBO0FBQUEsUUFFQSxtQkFBQSxDQUFvQixHQUFwQixFQUF5QjtBQUFBLFVBQUEsTUFBQSxFQUFRLENBQUMsQ0FBRCxFQUFJLENBQUosQ0FBUjtTQUF6QixDQUZBLENBQUE7QUFBQSxRQUdBLG1CQUFBLENBQW9CLEdBQXBCLEVBQXlCO0FBQUEsVUFBQSxNQUFBLEVBQVEsQ0FBQyxDQUFELEVBQUksQ0FBSixDQUFSO1NBQXpCLENBSEEsQ0FBQTtBQUFBLFFBSUEsbUJBQUEsQ0FBb0IsR0FBcEIsRUFBeUI7QUFBQSxVQUFBLE1BQUEsRUFBUSxDQUFDLENBQUQsRUFBSSxDQUFKLENBQVI7U0FBekIsQ0FKQSxDQUFBO0FBQUEsUUFLQSxtQkFBQSxDQUFvQixHQUFwQixFQUF5QjtBQUFBLFVBQUEsTUFBQSxFQUFRLENBQUMsRUFBRCxFQUFLLENBQUwsQ0FBUjtTQUF6QixDQUxBLENBQUE7QUFBQSxRQU9BLG1CQUFBLENBQW9CLEdBQXBCLEVBQXlCO0FBQUEsVUFBQSxNQUFBLEVBQVEsQ0FBQyxDQUFELEVBQUksQ0FBSixDQUFSO1NBQXpCLENBUEEsQ0FBQTtBQUFBLFFBUUEsbUJBQUEsQ0FBb0IsR0FBcEIsRUFBeUI7QUFBQSxVQUFBLE1BQUEsRUFBUSxDQUFDLENBQUQsRUFBSSxDQUFKLENBQVI7U0FBekIsQ0FSQSxDQUFBO0FBQUEsUUFTQSxtQkFBQSxDQUFvQixHQUFwQixFQUF5QjtBQUFBLFVBQUEsTUFBQSxFQUFRLENBQUMsQ0FBRCxFQUFJLENBQUosQ0FBUjtTQUF6QixDQVRBLENBQUE7QUFBQSxRQVVBLG1CQUFBLENBQW9CLEdBQXBCLEVBQXlCO0FBQUEsVUFBQSxNQUFBLEVBQVEsQ0FBQyxDQUFELEVBQUksQ0FBSixDQUFSO1NBQXpCLENBVkEsQ0FBQTtBQUFBLFFBV0EsbUJBQUEsQ0FBb0IsR0FBcEIsRUFBeUI7QUFBQSxVQUFBLE1BQUEsRUFBUSxDQUFDLENBQUQsRUFBSSxDQUFKLENBQVI7U0FBekIsQ0FYQSxDQUFBO2VBWUEsbUJBQUEsQ0FBb0IsR0FBcEIsRUFBeUI7QUFBQSxVQUFBLE1BQUEsRUFBUSxDQUFDLENBQUQsRUFBSSxDQUFKLENBQVI7U0FBekIsRUFibUM7TUFBQSxDQUFyQyxFQWpCaUM7SUFBQSxDQUFuQyxFQTFEd0M7RUFBQSxDQUExQyxDQU5BLENBQUE7QUFBQSIKfQ==
+
+//# sourceURL=/home/sargon/.atom/packages/vim-mode-plus-move-to-symbols/spec/main-spec.coffee
