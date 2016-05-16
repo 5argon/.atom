@@ -1,4 +1,5 @@
 "*":
+  "browser-plus": {}
   core:
     disabledPackages: [
       "symbols-view"
@@ -33,6 +34,9 @@
       "*.dll"
       "*.sbx"
     ]
+    packagesWithKeymapsDisabled: [
+      "symbols-tree-view"
+    ]
     themes: [
       "one-dark-mini-ui"
       "monokai-plus"
@@ -53,7 +57,6 @@
     rightEditorColor: "green"
     syncHorizontalScroll: true
   "symbols-tree-view":
-    autoToggle: true
     zAutoHideTypes: "variable"
   "tree-ignore": {}
   "tree-view": {}
