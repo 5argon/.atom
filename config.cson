@@ -1,8 +1,11 @@
 "*":
   "browser-plus": {}
+  "bracket-matcher":
+    autocompleteBrackets: false
+    autocompleteSmartQuotes: false
   core:
     disabledPackages: [
-      "symbols-view"
+      "wrap-guide"
     ]
     ignoredNames: [
       ".git"
@@ -42,9 +45,7 @@
       "monokai-plus"
     ]
   editor:
-    fontSize: 15
-    softwrap: true
-    tabLength: 4
+    softWrap: true
   "exception-reporting":
     userId: "528cf601-1123-32b8-1fc7-1f76d17233a3"
   "keyboard-localization":
@@ -58,7 +59,14 @@
     syncHorizontalScroll: true
   "symbols-tree-view":
     zAutoHideTypes: "variable"
+  minimap:
+    adjustMinimapWidthToSoftWrap: false
+    charHeight: 1
+  "one-dark-mini-ui":
+    tabSizing: "Even"
+  "one-dark-ui": {}
   "tree-ignore": {}
   "tree-view": {}
+  "webbox-color": {}
   welcome:
     showOnStartup: false

@@ -2,17 +2,14 @@
 
 Minimized Atom One Dark UI Theme, for better multi pane programming.
 
-Not suitable for users who use mouse to click on the tab or users who mainly use multi tab over multi pane.
-
 Modified from Atom One Dark UI Theme. See [one-dark-ui](https://atom.io/themes/one-dark-ui) for more details.
 
 ### Comparison
 
-#### Mini
-![After](http://i.imgur.com/rwlgWmM.png)
-
-#### Original
+#### Before
 ![Before](http://i.imgur.com/4C7f1Vi.png)
+#### After
+![After](http://i.imgur.com/rwlgWmM.png)
 
 ### Changes
 
@@ -21,8 +18,6 @@ Modified from Atom One Dark UI Theme. See [one-dark-ui](https://atom.io/themes/o
 ![Tab Bar](http://i.imgur.com/hVojaQd.png)
 
 This is the most important change. I usually do horizontal and vertical split programming workflow as inherited from when I was using Vim, and tab bar takes too much space on vertical stacking alignment. Not only more space gained, overall the screen looks less "bulky" too.
-
-The original height I believe was designed to be easily clicked on. But if you rely on shortcut keys it will not be a problem. Plus if you do split pane, you might not need a stacking tabs anyway. The tab acts like file name indicator for each pane. Smaller tabs makes horizontal splitter looks more like one thin line.
 
 There is a problem with characters with tail like g or q that goes out of the tab, but I think the trade off worths it because I have no problem guessing name of files. Also tab with icon like Settings will be overflowed badly, but I rarely open Settings when I am working so that's fine.
 
