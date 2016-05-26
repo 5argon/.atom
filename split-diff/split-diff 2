@@ -1,163 +1,108 @@
-//#define PROCESS_MASK
+cmake_minimum_required(VERSION 2.8)
+project(NeuralSlamDR)
 
-#include "NeuralSlamDR.h"
+set( ORB_SLAM_DIR ~/ORB_SLAM2/ )
 
-using namespace std;
+IF(NOT CMAKE_BUILD_TYPE)
+  SET(CMAKE_BUILD_TYPE Release)
+ENDIF()
 
-namespace NeuralSlamDR
-{
-    NSDSystem::NSDSystem(const string& vocabFile, const string& calibrationFile)
-    {
-        SLAM = new ORB_SLAM2::System(vocabFile,calibrationFile,ORB_SLAM2::System::MONOCULAR,true); //vocab yaml mono true
-        cout << "PLANEPOS = "<< endl << " "  << planePosition << endl << endl;
-    }
+MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-    void NSDSystem::UseFileMode(const string& filePath, const string& maskFilePath )
-    {
-        videoFile.open(filePath);
-        //cv::cvSetCaptureProperty(videoFile,cv::CV_CAP_PROP_POS_FRAMES, 2000);
-        //videoFile.set(CV_CAP_PROP_POS_MSEC,2000);
-        maskFile.open(maskFilePath);
-        // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    }
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
 
-    void NSDSystem::UseCameraMode()
-    {
-        webcam.open(0);
+# Check C++11 or C++0x support
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+if(COMPILER_SUPPORTS_CXX11)
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+   add_definitions(-DCOMPILEDWITHC11)
+   message(STATUS "Using flag -std=c++11.")
+elseif(COMPILER_SUPPORTS_CXX0X)
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+   add_definitions(-DCOMPILEDWITHC0X)
+   message(STATUS "Using flag -std=c++0x.")
+else()
+   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+endif()
 
-        if( !webcam.isOpened() )
-        {
-            std::cerr << "***Could not initialize capturing...***\n";
-            std::cerr << "Current parameter's value: \n";
-        }
-    }
+LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
-    void NSDSystem::ProcessFrame()
-    {
-        if(inputMode == FILE)
-        {
-            //argv[4] should be real video, and argv[5] should be the human mask video
-            videoFile>>im;
+find_package(OpenCV 2.4.3 REQUIRED)
+find_package(Eigen3 3.1.0 REQUIRED)
+find_package(Pangolin REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(PCL REQUIRED)
 
-            #ifdef PROCESS_MASK
-            maskFile>>mask;
+find_package(GLUT REQUIRED)
+find_package(GStreamer REQUIRED)
+find_package(LibXml2 REQUIRED)
+#find_package(GLIB2 REQUIRED)
 
-            if(!im.data || !mask.data)
-            {
-                break;
-            }
-            #endif
-        }
-        else
-        {
-            // im is from live camera
-            webcam >> im;
-            //TODO: get the mask out of im
-            //TODO: how to run python from here?
-        }
+include_directories(
+${ORB_SLAM_DIR}
+${ORB_SLAM_DIR}/include
+${EIGEN3_INCLUDE_DIR}
+${Pangolin_INCLUDE_DIRS}
+${PCL_INCLUDE_DIRS}
+${GLUT_INCLUDE_DIR}
+./include
+)
 
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
-        /*
-        #ifdef COMPILEDWITHC11
-        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-        #else
-        std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
-        #endif
-        */
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
-        // Pass the image to the SLAM system
-        SLAM->TrackMonocular(im,0); //lets look later how the system uses that "timestamp"
-        // this function create new Mat which I did not freed.
-        // in the long run this might cause big memory leaks?
-        //cameraPose = SLAM->GetCurrentCameraMatrix();
+add_library(${PROJECT_NAME} SHARED
+${ORB_SLAM_DIR}/src/System.cc
+${ORB_SLAM_DIR}/src/Tracking.cc
+${ORB_SLAM_DIR}/src/LocalMapping.cc
+${ORB_SLAM_DIR}/src/LoopClosing.cc
+${ORB_SLAM_DIR}/src/ORBextractor.cc
+${ORB_SLAM_DIR}/src/ORBmatcher.cc
+${ORB_SLAM_DIR}/src/FrameDrawer.cc
+${ORB_SLAM_DIR}/src/Converter.cc
+${ORB_SLAM_DIR}/src/MapPoint.cc
+${ORB_SLAM_DIR}/src/KeyFrame.cc
+${ORB_SLAM_DIR}/src/Map.cc
+${ORB_SLAM_DIR}/src/MapDrawer.cc
+${ORB_SLAM_DIR}/src/Optimizer.cc
+${ORB_SLAM_DIR}/src/PnPsolver.cc
+${ORB_SLAM_DIR}/src/Frame.cc
+${ORB_SLAM_DIR}/src/KeyFrameDatabase.cc
+${ORB_SLAM_DIR}/src/Sim3Solver.cc
+${ORB_SLAM_DIR}/src/Initializer.cc
+${ORB_SLAM_DIR}/src/Viewer.cc
+)
 
-        //string ty =  type2str( cameraPose.type() );
-        //printf("Matrix: %s %dx%d \n", ty.c_str(), cameraPose.cols, cameraPose.rows );
+#using library
+target_link_libraries(${PROJECT_NAME}
+${OpenCV_LIBS}
+${EIGEN3_LIBS}
+${Pangolin_LIBRARIES}
+${ORB_SLAM_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
+${ORB_SLAM_DIR}/Thirdparty/g2o/lib/libg2o.so
+${PCL_LIBRARIES}
+${GLUT_LIBRARIES}
+)
 
+# Build examples
 
-    //TODO : Store camera pose and position. Store all the colors of that pose into plane. Masked pixels does not count.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
 
-    //TODO : For current image, attempt to replace masked pixels with something else. Try to interpolate colors from the plane if found color data.
-    //cout << "3333";
+add_executable(neural_slam_dr src/NeuralSlamDR.cpp)
+target_link_libraries(neural_slam_dr ${ART_STATICS} ${PROJECT_NAME} )
 
-/*
-    cv::Mat resized;
-    cv::resize(plane,resized,cv::Size(500,500));
+#add_executable(kdtree kdtree.cpp)
+#target_link_libraries(kdtree ${ART_STATICS} ${PROJECT_NAME} )
 
-    //displaying result
-    SLAM->FeedAuxDisplay(resized);
-    SLAM->FeedOutputDisplay(output);
-    #endif //end of PROCESS_MASK
+add_executable(projtex src/projtex.c)
+target_link_libraries(projtex ${ART_STATICS} ${PROJECT_NAME} )
 
-    //usleep((1/(float)90)*1e6); //the wait
-
-    #ifdef PROCESS_MASK
-    std::clog << std::flush ;
-    std::clog.rdbuf( old_clog_buf ) ;
-    */
-
-    }
-
-}
-
-int main(int argc, char **argv)
-{
-    bool fileMode = false;
-    if(std::string(argv[3]) == "FILE")
-    {
-        if(argc != 6)
-        {
-            std::cerr << "Format : vocab calibration FILE file maskfile\n";
-            return 0;
-        }
-        fileMode = true;
-    }
-    else if (std::string(argv[3]) == "CAMERA")
-    {
-        fileMode = false;
-    }
-    else
-    {
-    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true); //vocab yaml mono true
-        std::cerr << "Format : vocab calibration FILE/CAMERA [file] [maskfile]\n";
-        return 0;
-    }
-
-    NeuralSlamDR::NSDSystem nsd(argv[1],argv[2]);
-    if(fileMode == false)
-    {
-        nsd.UseCameraMode();
-    }
-    else
-    {
-        nsd.UseFileMode(argv[4],argv[5]);
-    }
-
-    while(1)
-    {
-        nsd.ProcessFrame();
-    }
-
-// Stop all threads
-//SLAM.Shutdown();
-
-/*
-// Tracking time statistics
-sort(vTimesTrack.begin(),vTimesTrack.end());
-float totaltime = 0;
-for(int ni=0; ni<nImages; ni++)
-{
-totaltime+=vTimesTrack[ni];
-}
-cout << "-------" << endl << endl;
-cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
-cout << "mean tracking time: " << totaltime/nImages << endl;
-
-// Save camera trajectory
-SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
-*/
-
-cout << "End of program!" << endl << endl;
-return 0;
-}
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/calibration)
+add_executable(calibrate
+calibration/camera_calibration.cpp)
+target_link_libraries(calibrate ${PROJECT_NAME})
